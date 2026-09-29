@@ -1,0 +1,20 @@
+package com.polyflux.ulpf.normalization;
+
+import com.polyflux.ulpf.schema.Ues.Mapping;
+import com.polyflux.ulpf.schema.Ues.MappingEntry;
+import com.polyflux.ulpf.schema.Ues;
+import java.util.ArrayList;
+import java.util.List;
+import org.springframework.stereotype.Component;
+
+@Component
+public class MappingCatalog {
+    private static MappingEntry e(String from,String to,String type,double confidence,boolean required,String... transforms){return new MappingEntry(from,to,type,null,required,confidence,List.of(transforms));}
+    public List<Mapping> builtins(){String time="2026-01-01T00:00:00Z";return List.of(
+        new Mapping("cisco-asa","1.0","cisco-asa-parser",null,List.of(e("src_ip","network.source_ip","ip",.99,true),e("dst_ip","network.destination_ip","ip",.99,false),e("src_port","network.source_port","port",.99,false),e("dst_port","network.destination_port","port",.99,false),e("protocol","network.protocol","protocol",.99,false),e("direction","network.direction","string",.95,false),e("action","event.action","enum",.97,true),e("level","event.severity","severity",.9,false),e("msgid","event.type","string",.95,false),e("acl","rule.name","string",.95,false),e("user","identity.username","string",.95,false)),time,null,true),
+        new Mapping("fortinet-fgt","2.1","fortinet-parser",null,List.of(e("srcip","network.source_ip","ip",.99,false),e("remip","network.source_ip","ip",.95,false),e("dstip","network.destination_ip","ip",.99,false),e("srcport","network.source_port","port",.99,false),e("dstport","network.destination_port","port",.99,false),e("proto","network.protocol","protocol",.97,false),e("action","event.action","enum",.97,true),e("level","event.severity","severity",.95,false),e("subtype","event.type","string",.9,false),e("policyid","rule.id","string",.99,false),e("policyname","rule.name","string",.99,false),e("user","identity.username","string",.97,false),e("devid","source.device_ip","string",.5,false)),time,null,true),
+        new Mapping("cef-generic","1.0","cef-parser",null,List.of(e("src","network.source_ip","ip",.99,false),e("dst","network.destination_ip","ip",.99,false),e("spt","network.source_port","port",.99,false),e("dpt","network.destination_port","port",.99,false),e("proto","network.protocol","protocol",.97,false),e("act","event.action","enum",.95,false),e("severity","event.severity","severity",.95,false),e("name","event.type","string",.9,false),e("signature_id","rule.id","string",.95,false),e("suser","identity.username","string",.95,false),e("dvc","source.device_ip","ip",.9,false)),time,null,true),
+        new Mapping("leef-generic","1.0","leef-parser",null,List.of(e("src","network.source_ip","ip",.99,false),e("dst","network.destination_ip","ip",.99,false),e("srcPort","network.source_port","port",.99,false),e("dstPort","network.destination_port","port",.99,false),e("proto","network.protocol","protocol",.97,false),e("action","event.action","enum",.9,false),e("sev","event.severity","severity",.9,false),e("event_id","event.type","string",.9,false),e("usrName","identity.username","string",.97,false)),time,null,true),
+        new Mapping("syslog-generic","1.0","generic-syslog-parser",null,List.of(e("pri","event.severity","severity",.8,false,"severity_from_pri"),e("app","event.type","string",.6,false)),time,null,true));}
+    public Mapping generated(String id,String version,String source,List<Ues.FieldSuggestion> suggestions){List<MappingEntry> entries=new ArrayList<>();for(var s:suggestions)if(s.target()!=null&&!s.target().equals("source.device_id")){String type=s.target().endsWith("_ip")?"ip":s.target().contains("port")?"port":s.target().equals("event.action")?"enum":s.target().equals("network.protocol")?"protocol":s.target().equals("timestamps.event_time")?"timestamp":s.target().equals("event.severity")?"severity":"string";boolean required=(s.target().equals("network.source_ip")||s.target().equals("event.action"))&&entries.stream().noneMatch(x->x.target().equals(s.target()));entries.add(e(s.source_field(),s.target(),type,Math.max(.5,s.confidence()==0?.9:s.confidence()),required));}return new Mapping(id,version,"generated",source,entries,Ues.now(),"analyst",false);}
+}

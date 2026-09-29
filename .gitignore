@@ -33,3 +33,9 @@ Thumbs.db
 # Cloudflare / deployment
 .wrangler/
 .dev.vars
+# Java build/runtime output
+backend/target/
+backend/.m2/
+.m2/
+backend/maven-settings.xml
+

@@ -1,0 +1,34 @@
+server:
+  port: ${SERVER_PORT:8081}
+  error:
+    include-message: always
+spring:
+  application:
+    name: polyflux-ulpf
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/polyflux}
+    username: ${DATABASE_USER:polyflux}
+    password: ${DATABASE_PASSWORD:polyflux}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+ulpf:
+  ingestion:
+    max-event-bytes: 65536
+    max-request-bytes: 2097152
+    max-batch: 5000

@@ -1,0 +1,2 @@
+ALTER TABLE ulpf_raw_events
+  ALTER COLUMN raw_sha256 TYPE VARCHAR(64);

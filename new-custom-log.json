@@ -1,0 +1,30 @@
+[
+  {
+    "timestamp": "2026-09-29T08:42:17+05:30",
+    "host": "WAF-NORTH-07",
+    "client_address": "198.51.100.204",
+    "origin_port": 60122,
+    "protected_host": "10.24.8.19",
+    "service_port": 8443,
+    "transport_name": "tcp",
+    "decision_code": "blocked",
+    "threat_label": "path_traversal_attempt",
+    "risk_rank": "critical",
+    "request_path": "/assets/..%2f..%2fadmin",
+    "request_id": "waf-20260929-084217-7319"
+  },
+  {
+    "timestamp": "2026-09-29T08:43:02+05:30",
+    "host": "WAF-NORTH-07",
+    "client_address": "198.51.100.204",
+    "origin_port": 60138,
+    "protected_host": "10.24.8.19",
+    "service_port": 8443,
+    "transport_name": "tcp",
+    "decision_code": "blocked",
+    "threat_label": "sql_injection_probe",
+    "risk_rank": "high",
+    "request_path": "/search?q=%27%20OR%201%3D1--",
+    "request_id": "waf-20260929-084302-7324"
+  }
+]

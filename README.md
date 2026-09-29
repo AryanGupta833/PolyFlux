@@ -1,6 +1,6 @@
 # PolyFlux — Universal Log Pre-processing Framework
 
-ULPF takes perimeter device logs in many formats (Syslog RFC 3164/5424, JSON, CEF, LEEF, CSV, key=value, vendor formats like Cisco ASA and FortiGate) and turns them into **one Universal Event Schema (UES v1.0)**.
+ULPF takes perimeter device logs in many formats (Syslog RFC 3164/5424, JSON, CEF, LEEF, CSV, key=value, vendor formats like Cisco ASA and FortiGate) and turns them into **one Universal Event Schema (UES v1.0)**. The project has a standalone Spring Boot backend, React frontend and PostgreSQL persistence.
 
 ```
 MANY SOURCES → ONE PROCESSING MODEL → ONE UNIVERSAL EVENT SCHEMA → MANY CONSUMERS
@@ -9,8 +9,8 @@ MANY SOURCES → ONE PROCESSING MODEL → ONE UNIVERSAL EVENT SCHEMA → MANY CO
 ## Quick start
 
 ```sh
-bun install
-bun run dev        # open http://localhost:8080
+docker compose up --build
+# open http://localhost:8080
 ```
 
 Go to **Ingest & Overview** and click the ▶ buttons for the demo scenarios, in order 1 → 5.
@@ -29,14 +29,13 @@ Go to **Ingest & Overview** and click the ▶ buttons for the demo scenarios, in
 
 | Stage | Where in the code | Notes |
 |---|---|---|
-| Ingest | `src/lib/ulpf/engine.ts` `ingest`, `makeRaw` | Splits JSON arrays, NDJSON, CSV (with header) and lines. Assigns UUIDv7 `raw_event_id` and SHA-256 of the exact text. Caps each event at 64 KB |
-| Detect | `parsers.ts` `detectFormats` | Uses the log's signature and structure, never the filename. Returns a ranked list with confidence |
-| Parser registry | `parsers.ts` `selectAndParse` | Every parser returns a score. The top score wins, and the reason and alternatives are recorded |
-| Parse | `parsers.ts` | Cisco ASA, FortiGate, CEF, LEEF, generic JSON / CSV / KV / Syslog / raw. The key=value tokenizer is linear, with no backtracking regex |
-| Normalize | `normalize.ts` `normalize` | Declarative, versioned mappings. Converts types (ip, port, protocol, enum, severity, timestamp) and applies named transforms. Writes lineage for each field. Unmapped fields go to `extensions` and are never dropped |
-| Validate / enrich | `normalize.ts` | Required-field policy, quality score, private/public IP classification, port → service name, traffic direction |
-| Store | `store.tsx` | Idempotent upsert keyed by the deterministic `event_id = uuid(sha256("ulpf:event:"+raw_event_id))` |
-| Analytics | `engine.ts` `runAnalytics`, `buildGraph` | Rule alerts and the correlation graph |
+| Ingest | `backend/src/main/java/com/polyflux/ulpf/ingestion/PipelineService.java` | Splits incoming content into records, assigns IDs and hashes, persists raw input and normalized results |
+| Detect and parse | `backend/src/main/java/com/polyflux/ulpf/parser/` | Java parser registry for Cisco ASA, FortiGate, CEF, LEEF, JSON, CSV, key=value and syslog |
+| Normalize | `backend/src/main/java/com/polyflux/ulpf/normalization/` | Versioned mappings, typed UES fields, lineage, quality, and enrichment |
+| Store | `backend/src/main/java/com/polyflux/ulpf/storage/` plus `backend/src/main/resources/db/migration/` | PostgreSQL persistence with Flyway-managed schema |
+| HTTP API | `backend/src/main/java/com/polyflux/ulpf/api/` | REST endpoints for ingestion, state, file uploads, mapping proposals, reprocessing, DLQ retry and reset |
+| Frontend | `frontend/src/` | Separate React/TanStack browser client calling the Spring Boot API |
+| Analytics | `backend/src/main/java/com/polyflux/ulpf/analytics/` and frontend correlation view | Backend rule alerts and frontend correlation graph |
 
 Every event ends in exactly one terminal state: **NORMALIZED**, **PARTIAL**, **RAW_ONLY** or **DEAD_LETTERED** (the DLQ, which you can retry on the Mappings & Ops page).
 
@@ -48,28 +47,27 @@ Every event ends in exactly one terminal state: **NORMALIZED**, **PARTIAL**, **R
 
 ## HTTP API
 
-The API is stateless: it runs the full pipeline and returns UES JSON.
+The backend exposes the ingestion and state APIs on port 8081. The separate frontend runs on port 8080 and reads and writes pipeline data through that backend.
 
 ```sh
-curl -X POST http://localhost:8080/api/public/v1/events \
-  -H 'content-type: text/plain' \
-  --data-binary '<164>Sep 28 10:31:21 ASA01 : %ASA-4-106023: Deny tcp src outside:203.0.113.45/51234 dst inside:10.0.1.20/443 by access-group "outside_in"'
+curl -X POST http://localhost:8081/api/public/v1/events \
+  -H 'content-type: application/json' \
+  -d '{"text":"<164>Sep 28 10:31:21 ASA01 : %ASA-4-106023: Deny tcp src outside:203.0.113.45/51234 dst inside:10.0.1.20/443 by access-group outside_in"}'
 
-curl http://localhost:8080/api/public/v1/health
+curl http://localhost:8081/api/public/v1/health
 ```
 
-The dashboard keeps its state (raw events, events, mappings, proposals, drift reports, alerts, audit log) in browser local storage. Use **Mappings & Ops → Reset** to start fresh, and **Events → Export NDJSON** to send data to a SIEM.
+The frontend is a separate browser client for the Spring Boot API. PostgreSQL stores raw events, normalized events, mappings, proposals, drift reports, alerts, DLQ and audit. Use **Mappings & Ops → Reset** to start fresh, and **Events → Export NDJSON** to send data to a SIEM.
 
 ## How this maps to the architecture document
 
-The design document describes a production deployment: a Spring Boot modular monolith with Kafka, OpenSearch, PostgreSQL and Redis. This MVP implements the same processing model, schema and four killer features in TypeScript (TanStack Start + React).
-- The in-process direct queue stands in for Kafka.
-- Browser storage stands in for OpenSearch and PostgreSQL.
-- The engine is written as pure functions over a state object, so each storage backend can be replaced behind the same interfaces.
+The design document describes a Spring Boot modular monolith with Kafka, OpenSearch, PostgreSQL and Redis. This implementation uses Spring Boot for the backend, PostgreSQL for persisted data and React/TanStack for the separate frontend. OpenSearch and Kafka remain replaceable future adapters.
 
-**Not built yet:** syslog UDP/TCP listeners, rate limiting, ML anomaly detection, and server-side persistent storage.
+**Not built yet:** OpenSearch indexing/search, Kafka transport, Redis acceleration, syslog UDP/TCP listeners, rate limiting, authentication/RBAC, and ML anomaly detection.
+
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the layer diagram, API routes, and implementation status against the architecture baseline.
 
 **No performance figures are claimed**, following §16 of the design.
 
 ## Tech
-TanStack Start (React 19, Vite), Tailwind CSS v4, shadcn/ui. The engine has no dependencies and runs in both the browser and edge workers.
+Backend: Java 21, Spring Boot, PostgreSQL, Flyway. Frontend: React 19, TanStack Start, Vite, Tailwind CSS v4, shadcn/ui.

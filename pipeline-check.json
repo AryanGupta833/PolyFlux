@@ -1,0 +1,32 @@
+[
+  {
+    "log": "<164>Sep 28 10:31:21 ASA01 : %ASA-4-106023: Deny tcp src outside:203.0.113.45/51234 dst inside:10.0.1.20/443 by access-group \"outside_in\""
+  },
+  {
+    "date": "2026-09-28",
+    "time": "10:32:04",
+    "devname": "FGT-EDGE-01",
+    "devid": "FGT60F1234567890",
+    "logid": "0000000013",
+    "type": "traffic",
+    "subtype": "forward",
+    "srcip": "198.51.100.23",
+    "srcport": "53821",
+    "dstip": "10.0.2.15",
+    "dstport": "22",
+    "proto": "6",
+    "action": "deny",
+    "policyid": "7",
+    "level": "warning"
+  },
+  {
+    "timestamp": "2026-09-28T10:33:19Z",
+    "host": "LAB-IDS-01",
+    "event_type": "malware_detected",
+    "severity": "high",
+    "source_address": "203.0.113.77",
+    "destination_address": "10.0.3.8",
+    "username": "demo-user",
+    "message": "Test event for unknown source mapping proposal"
+  }
+]

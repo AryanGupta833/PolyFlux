@@ -1,0 +1,29 @@
+import { defineConfig } from "vite";
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
+import { nitro } from "nitro/vite";
+import viteReact from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
+
+export default defineConfig({
+  server: {
+    port: 8080,
+    proxy: {
+      "/api": { target: "http://localhost:8081", changeOrigin: true },
+    },
+  },
+
+  resolve: {
+    tsconfigPaths: true,
+  },
+
+  plugins: [
+    tanstackStart({
+      server: {
+        entry: "server",
+      },
+    }),
+    nitro(),
+    viteReact(),
+    tailwindcss(),
+  ],
+});
